@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0f0c">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="译镜">
+<link rel="apple-touch-icon" href="assets/icons/icon-180.png">
+<title>译镜 LensTranslate · 相机拍照翻译</title>
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js" defer></script>
+<script src="js/app.js" defer></script>
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<div class="app" id="app">
+  <header class="app-header">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 8V6a2 2 0 0 1 2-2h2"/><path d="M17 4h2a2 2 0 0 1 2 2v2"/><path d="M21 16v2a2 2 0 0 1-2 2h-2"/><path d="M7 20H5a2 2 0 0 1-2-2v-2"/><path d="M7 9.5h6"/><path d="M10 7.5v2c0 3-1.6 5.4-4 6.5"/><path d="M6.5 11.5c.8 2 2.4 3.6 4.5 4.3"/><path d="M13.5 16l2.2-5.5L18 16"/><path d="M14.3 14h2.9"/></svg>
+      </span>
+      <div class="brand-text">
+        <strong>译镜</strong>
+        <span>LensTranslate</span>
+      </div>
+    </div>
+    <button class="icon-btn" id="historyBtn" aria-label="翻译历史" title="翻译历史">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.3"/><path d="M3 4v5h5"/><path d="M12 7v5l3.5 2"/></svg>
+    </button>
+  </header>
+
+  <main class="stage" id="stage">
+    <video id="camera" playsinline autoplay muted></video>
+    <canvas id="snapshot" hidden></canvas>
+
+    <div class="viewfinder" id="viewfinder" aria-hidden="true">
+      <div class="vf-frame">
+        <span class="corner tl"></span><span class="corner tr"></span>
+        <span class="corner bl"></span><span class="corner br"></span>
+        <span class="scan-line" id="scanLine"></span>
+      </div>
+      <p class="vf-hint" id="vfHint">对准需要翻译的文字，保持平稳</p>
+    </div>
+
+    <div class="status-bar" id="statusBar" role="status" aria-live="polite">
+      <span class="dot" id="statusDot"></span><span id="statusText">正在启动相机…</span>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+      <span class="progress-label" id="progressLabel">准备中</span>
+    </div>
+
+    <div class="error-state" id="errorState" hidden>
+      <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20"/><path d="M14.5 14.6A2.5 2.5 0 0 1 9.6 9.7"/><path d="M9.9 5.1A9 9 0 0 1 12 5c7 0 10 7 10 7a17 17 0 0 1-3.2 3.9"/><path d="M6.6 6.6A16.6 16.6 0 0 0 2 12s3 7 10 7a9.4 9.4 0 0 0 4-.9"/></svg>
+      <p id="errorText">相机不可用</p>
+      <button class="ghost-btn" id="errorUploadBtn">从相册选择图片</button>
+    </div>
+  </main>
+
+  <div class="lang-bar">
+    <div class="select-wrap">
+      <select id="srcLang" aria-label="源语言">
+        <option value="auto" selected>自动检测语言</option>
+        <option value="eng">英语 English</option>
+        <option value="jpn">日语 日本語</option>
+        <option value="kor">韩语 한국어</option>
+        <option value="fra">法语 Français</option>
+        <option value="ita">意大利语 Italiano</option>
+        <option value="spa">西班牙语 Español</option>
+        <option value="deu">德语 Deutsch</option>
+        <option value="por">葡萄牙语 Português</option>
+        <option value="rus">俄语 Русский</option>
+        <option value="vie">越南语 Tiếng Việt</option>
+        <option value="tha">泰语 ภาษาไทย</option>
+        <option value="ara">阿拉伯语 العربية</option>
+      </select>
+      <svg class="select-arrow" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+    </div>
+    <span class="swap" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M13 6l6 6-6 6"/></svg>
+    </span>
+    <span class="target-chip">中文</span>
+  </div>
+
+  <div class="controls">
+    <button class="ctrl-btn" id="uploadBtn" aria-label="从相册上传">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-4.5-4.5L6 21"/></svg>
+      <span>相册</span>
+    </button>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+
+    <button class="shutter" id="captureBtn" aria-label="拍照翻译">
+      <span class="shutter-ring"></span>
+      <span class="shutter-core">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 9.5h6"/><path d="M10 7.5v2c0 3-1.6 5.4-4 6.5"/><path d="M6.5 11.5c.8 2 2.4 3.6 4.5 4.3"/><path d="M13.5 16l2.2-5.5L18 16"/><path d="M14.3 14h2.9"/></svg>
+      </span>
+    </button>
+
+    <button class="ctrl-btn" id="sampleBtn" aria-label="试用示例">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M12 18v3"/><path d="M3 12h3"/><path d="M18 12h3"/><path d="M5.6 5.6l2.1 2.1"/><path d="M16.3 16.3l2.1 2.1"/><path d="M5.6 18.4l2.1-2.1"/><path d="M16.3 7.7l2.1-2.1"/><circle cx="12" cy="12" r="3.2"/></svg>
+      <span>示例</span>
+    </button>
+  </div>
+
+  <section class="result-sheet" id="resultSheet" hidden aria-label="翻译结果">
+    <div class="sheet-handle" aria-hidden="true"></div>
+    <div class="result-block">
+      <div class="result-head">
+        <span class="result-label" id="srcLabel">识别原文</span>
+        <button class="mini-btn" id="copySrcBtn">复制</button>
+      </div>
+      <p class="result-text src" id="srcText"></p>
+    </div>
+    <div class="divider-arrow" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"/><path d="M6 13l6 6 6-6"/></svg>
+    </div>
+    <div class="result-block translated">
+      <div class="result-head">
+        <span class="result-label">中文译文</span>
+        <button class="mini-btn" id="copyDstBtn">复制</button>
+      </div>
+      <p class="result-text dst" id="dstText"></p>
+    </div>
+    <div class="sheet-actions">
+      <button class="ghost-btn" id="retakeBtn">再拍一张</button>
+      <button class="primary-btn" id="closeSheetBtn">完成</button>
+    </div>
+  </section>
+
+  <aside class="history-drawer" id="historyDrawer" hidden aria-label="翻译历史">
+    <div class="drawer-head">
+      <strong>翻译历史</strong>
+      <div class="drawer-head-actions">
+        <button class="mini-btn danger" id="clearHistoryBtn">清空</button>
+        <button class="icon-btn" id="closeDrawerBtn" aria-label="关闭">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18"/><path d="M6 6l12 12"/></svg>
+        </button>
+      </div>
+    </div>
+    <ul class="history-list" id="historyList"></ul>
+    <p class="history-empty" id="historyEmpty">暂无记录，拍一张照片试试</p>
+  </aside>
+
+  <div class="toast" id="toast" role="status"></div>
+</div>
+
+<p class="desktop-note">相机功能需在手机上（或带摄像头的电脑）通过 <code>http://localhost</code> 或 HTTPS 访问</p>
+</body>
+</html>
